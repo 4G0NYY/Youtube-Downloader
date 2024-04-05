@@ -1,41 +1,50 @@
-import tkinter
-import customtkinter
+import customtkinter as ctk
 from pytube import YouTube
+from threading import Thread
 
-def download_video(url, path='.', quality='highest'):
-    """
-    Download a video from YouTube.
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
 
-    Parameters:
-        url (str): The URL of the YouTube video.
-        path (str, optional): The path where the video will be saved. Defaults to the current directory.
-        quality (str, optional): The quality of the video ('highest', 'lowest', or a resolution like '720p'). Defaults to 'highest'.
-    """
-    try:
-        # Create a YouTube object with the URL
-        yt = YouTube(url)
+class YouTubeDownloaderApp(ctk.CTk):
 
-        # Get the video stream
-        if quality == 'highest':
+    def __init__(self):
+        super().__init__()
+
+        self.title('Youtube Downloader')
+        self.geometry('720x480')
+
+        self.url_label = ctk.CTkLabel(self, text="YouTube Video URL:")
+        self.url_label.pack(pady=(20, 5))
+        
+        self.url_entry = ctk.CTkEntry(self, width=400, placeholder_text="Enter YouTube video link here")
+        self.url_entry.pack()
+
+        self.download_button = ctk.CTkButton(self, text="Download", command=self.start_download)
+        self.download_button.pack(pady=20)
+
+        self.status_label = ctk.CTkLabel(self, text="")
+        self.status_label.pack()
+
+    def download_video(self, url):
+        try:
+            yt = YouTube(url)
             stream = yt.streams.get_highest_resolution()
-        elif quality == 'lowest':
-            stream = yt.streams.get_lowest_resolution()
-        else:
-            stream = yt.streams.filter(res=quality, file_extension='mp4').first()
+            stream.download()
+            self.update_status(f"'{yt.title}' downloaded successfully!")
+        except Exception as e:
+            self.update_status(f"Error: {e}")
 
-        if stream:
-            # Download the video
-            print(f"Downloading '{yt.title}'...")
-            stream.download(output_path=path)
-            print("Download completed!")
+    def start_download(self):
+        url = self.url_entry.get()
+        if url.strip():
+            self.update_status("Downloading...")
+            Thread(target=self.download_video, args=(url,)).start()
         else:
-            print("Could not find a video stream with the specified quality.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+            self.update_status("Please enter a YouTube video URL.")
+
+    def update_status(self, text):
+        self.status_label.configure(text=text)
 
 if __name__ == '__main__':
-    video_url = input("Enter the YouTube video URL: ")
-    download_path = input("Enter download path (leave blank for current directory): ") or '.'
-    video_quality = input("Enter video quality ('highest', 'lowest', or a resolution like '720p'): ") or 'highest'
-
-    download_video(video_url, download_path, video_quality)
+    app = YouTubeDownloaderApp()
+    app.mainloop()
